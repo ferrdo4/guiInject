@@ -1,0 +1,12 @@
+#ifndef GUIINJECT_GLOBAL_H
+#define GUIINJECT_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(GUIINJECT_LIBRARY)
+#  define GUIINJECTSHARED_EXPORT Q_DECL_EXPORT
+#else
+#  define GUIINJECTSHARED_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // GUIINJECT_GLOBAL_H
