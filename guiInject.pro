@@ -20,10 +20,14 @@ SOURCES += guiinject.cpp \
     startuphelper.cpp
 
 HEADERS += guiinject.h\
-        guiinject_global.h \
+    guiinject_global.h \
     startuphelper.h
 
 CONFIG += c++11
+
+OBJECTS_DIR = .tmpinj
+MOC_DIR = .tmpinj
+RCC_DIR = .tmpinj
 
 sunix {
     target.path = /usr/lib
