@@ -9,15 +9,8 @@ Ping Test
 
 Objects test
    ${objs} =   read all objects
+   log   ${objs}
  
 Click object
    click   pushButton
 
-#Server State Test
-#   Server Status Should be          AdminServer       RUNNING
- 
-#Application State Test
-#   Application Status Should Be     oracleRobot       ACTIVE
- 
-#Data Source Existence Test
-#   Data Source Should Exist         myDataSource
