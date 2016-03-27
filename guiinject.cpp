@@ -23,6 +23,7 @@ GuiInject::GuiInject(QObject* parent)
     : QObject(parent)
 {
     m_server = new MaiaXmlRpcServer(8080, this);
+
     // dynamic RF api
     m_server->addMethod("get_keyword_names", this, "getKeywordNames");
     m_server->addMethod("run_keyword", this, "runKeyword");
@@ -36,9 +37,11 @@ GuiInject::GuiInject(QObject* parent)
 QVariantList GuiInject::getKeywordNames()
 {
     QVariantList list;
-    list.append("ping");
-    list.append("read all objects");
-    list.append("click");
+    list.append(CMD_PING);
+    list.append(CMD_READ_ALL);
+    list.append(CMD_CLICK);
+    list.append(CMD_READ_PROP);
+    list.append(CMD_SET_PROP);
     return list;
 }
 
@@ -48,30 +51,34 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
     QVariantMap result;
     result["status"] = "FAIL";
 
-    if (name == "ping")
+    if (!checkArguments(name, args.count(), result))
     {
-        unsigned int count = args.count();
-        if (count != 1)
-        {
-            result["error"] = " invalid arguments number";
-            return result;
-        }
+        return result;
+    }
+
+    if (name == CMD_PING)
+    {
         result["return"] = ping(args[0].toString());
     }
-    else if (name == "read all objects")
+    else if (name == CMD_READ_ALL)
     {
         result["return"] = readAllObjects();
     }
-    else if (name == "click")
+    else if (name == CMD_CLICK)
     {
-        unsigned int count = args.count();
-        if (count != 1)
-        {
-            result["error"] = " invalid arguments number";
-            return result;
-        }
         click(args[0].toString());
         result["return"] = "";
+    }
+    else if ( name == CMD_READ_PROP )
+    {
+        result["return"] = readProperty(args[0].toString(), args[1].toString());
+    }
+    else if ( name == CMD_SET_PROP )
+    {
+        if ( setProperty(args[0].toString(), args[1].toString(), args[2].toString()) )
+            result["return"] = "true";
+        else
+            return result;
     }
 
     result["status"] = "PASS";
@@ -81,24 +88,75 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
 QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
-    if (name == "ping" || name == "click")
-        list.append("QString");
+    QList<QString> oneStringParam = {CMD_PING, CMD_CLICK};
+    QList<QString> twoStringParam = {CMD_READ_PROP};
+    QList<QString> threeStringParam = {CMD_SET_PROP};
 
+    if (oneStringParam.indexOf( name )!= -1)
+        list.append("QString");
+    else if (twoStringParam.indexOf(name) != -1)
+    {
+        list.append("QString");
+        list.append("QString");
+    }
+    else if (threeStringParam.indexOf(name) != -1)
+    {
+        list.append("QString");
+        list.append("QString");
+        list.append("QString");
+    }
     return list;
 }
 
 QString GuiInject::getKeywordDoc(QString name)
 {
-    if(name == "ping")
+    if(name == CMD_PING)
         return QString("retruns pong + string");
-    if(name == "click")
+    if(name == CMD_CLICK)
         return QString("click on object with name");
+    if(name == CMD_READ_ALL)
+        return QString("retrun list of all objects");
+    if(name == CMD_READ_PROP)
+        return QString("retrun property of selected object");
+    if(name == CMD_SET_PROP)
+        return QString("set property of selected object");
 
     return QString();
 }
 
 bool GuiInject::stopRemoteServer()
 {
+    return true;
+}
+
+void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj)
+{
+    QString name = obj->objectName();
+    map[name] = obj;
+    for(auto& child : obj->children())
+    {
+        readObjectTree(map, child);
+    }
+}
+
+void GuiInject::createObjMap()
+{
+    auto widgets = QApplication::topLevelWidgets();
+
+    for(auto& object : widgets)
+    {
+        readObjectTree(m_objMap, object);
+    }
+}
+
+bool GuiInject::checkArguments(QString command, int count, QVariantMap &result)
+{
+    int countShouldBe = getKeywordArguments(command).count();
+    if (count < countShouldBe)
+    {
+        result["error"] = QString("Invalit arguments number %1/%2").arg(count).arg(countShouldBe);
+        return false;
+    }
     return true;
 }
 
@@ -121,33 +179,54 @@ QVariantList GuiInject::readAllObjects()
 void GuiInject::click(QString objName)
 {
     QObject *obj = m_objMap[objName];
-    if (obj)
+    if (!obj)
     {
-        if (QWidget* pb = (QWidget*)obj)
+        qDebug() << QString("Object %1 not found !").arg(objName);
+    }
+
+
+    // click on the desired object
+    if (QWidget* pb = (QWidget*)obj)
+    {
+        QPoint pos(0, 0);
+        QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonPress, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
+        QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonRelease, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
+    }
+}
+
+QString GuiInject::readProperty(QString objName, QString property)
+{
+    QString ret;
+    QObject *obj = m_objMap[objName];
+    if (!obj)
+    {
+        qDebug() << QString("Object %1 not found !").arg(objName);
+    }
+
+    if (QWidget* pb = (QWidget*)obj)
+    {
+        QVariant var = pb->property(property.toStdString().c_str());
+        ret = var.toString();
+        if (ret.isEmpty())
         {
-            QPoint pos(0, 0);
-            QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonPress, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
-            QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonRelease, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
+            qDebug() << QString("Property %1 not found").arg(property);
         }
     }
+    return ret;
 }
 
-void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj)
+bool GuiInject::setProperty(QString objName, QString property, QString value)
 {
-    QString name = obj->objectName();
-    map[name] = obj;
-    for(auto& child : obj->children())
+    bool ret = false;
+    QObject *obj = m_objMap[objName];
+    if (!obj)
     {
-        readObjectTree(map, child);
+        qDebug() << QString("Object %1 not found !").arg(objName);
     }
-}
 
-void GuiInject::createObjMap()
-{
-    auto widgets = QApplication::topLevelWidgets();
-
-    for(auto& object : widgets)
+    if (QWidget* pb = (QWidget*)obj)
     {
-        readObjectTree(m_objMap, object);
+        ret = pb->setProperty(property.toStdString().c_str(), QVariant(value));
     }
+    return ret;
 }
