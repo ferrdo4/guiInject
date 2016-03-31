@@ -1,4 +1,4 @@
 [submodule "libmaia"]
-    path = libmaia
-    url = https://github.com/wiedi/libmaia.git
+	path = libmaia
+	url = https://github.com/wiedi/libmaia.git
 

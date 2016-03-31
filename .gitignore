@@ -2,6 +2,5 @@ Makefile
 *.o
 *.so*
 *.pro.user
-libmaia/
 moc_*
 
