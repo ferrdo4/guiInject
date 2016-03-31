@@ -19,5 +19,9 @@ Read property
     log   ${prop}
 
 Set property
+    sleep  3
     set property     pushButton_2    visible    true
+
+change text
+    set property    pushButton_2   text   Hello!
 
