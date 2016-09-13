@@ -9,20 +9,23 @@
 #define LIB_INIT_FUNC __attribute__((constructor))
 LIB_INIT_FUNC void guiInjectInit()
 {
+    qDebug() << "lib init";
     StartupHelper* initHelper = new StartupHelper(guiInject);
+    qDebug() << "next";
     QObject::connect(initHelper, SIGNAL(startupComplete()), initHelper, SLOT(deleteLater()));
     initHelper->watchForStartup();
 }
 
 void guiInject()
 {
+    qDebug() << "lib inject";
     new GuiInject(QCoreApplication::instance());
 }
 
 GuiInject::GuiInject(QObject* parent)
     : QObject(parent)
 {
-    m_server = new MaiaXmlRpcServer(8080, this);
+    m_server = new MaiaXmlRpcServer(8888, this);
 
     // dynamic RF api
     m_server->addMethod("get_keyword_names", this, "getKeywordNames");
@@ -88,9 +91,9 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
 QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
-    QList<QString> oneStringParam = {CMD_PING, CMD_CLICK};
-    QList<QString> twoStringParam = {CMD_READ_PROP};
-    QList<QString> threeStringParam = {CMD_SET_PROP};
+    QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
+    QList<QString> twoStringParam {CMD_READ_PROP};
+    QList<QString> threeStringParam {CMD_SET_PROP};
 
     if (oneStringParam.indexOf( name )!= -1)
         list.append("QString");

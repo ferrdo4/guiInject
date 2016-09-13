@@ -11,7 +11,7 @@ QT       -= gui
 TARGET = guiInject
 TEMPLATE = lib
 
-INCLUDEPATH += libmaia
+INCLUDEPATH += libmaia 
 LIBS += libmaia/libmaia.a
 
 DEFINES += GUIINJECT_LIBRARY
@@ -23,11 +23,15 @@ HEADERS += guiinject.h\
     guiinject_global.h \
     startuphelper.h
 
+#greaterThan(QT_MAJOR_VERSION, 4){
 CONFIG += c++11
+#} else {
+#QMAKE_CXXFLAGS += -std=c++0x
+#}
 
-OBJECTS_DIR = .tmpinj
-MOC_DIR = .tmpinj
-RCC_DIR = .tmpinj
+#OBJECTS_DIR = .tmpinj
+#MOC_DIR = .tmpinj
+#RCC_DIR = .tmpinj
 
 sunix {
     target.path = /usr/lib

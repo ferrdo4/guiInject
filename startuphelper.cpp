@@ -2,6 +2,18 @@
 
 #include <QtConcurrentRun>
 #include <QThread>
+#include <QFuture>
+#include <QApplication>
+
+class Utils : public QThread
+{
+public:
+    static void msleep(int ms)
+    {
+        QThread::msleep(ms);
+    }
+};
+
 
 void StartupHelper::runInitFunc()
 {
@@ -13,13 +25,16 @@ void StartupHelper::doWait()
 {
     while (QCoreApplication::startingUp())
     {
+        qDebug() << "waiting ...";
         QThread::msleep(100);
+//        Utils::msleep(100);
     }
     QMetaObject::invokeMethod(this, "runInitFunc", Qt::QueuedConnection);
 }
 
 void StartupHelper::watchForStartup()
 {
+    qDebug() << "watch for startup";
     QtConcurrent::run(this, &StartupHelper::doWait);
 }
 
