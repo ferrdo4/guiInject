@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QWidget>
 #include <QMouseEvent>
+#include <QComboBox>
 #include "startuphelper.h"
 
 #define LIB_INIT_FUNC __attribute__((constructor))
@@ -45,6 +46,9 @@ QVariantList GuiInject::getKeywordNames()
     list.append(CMD_CLICK);
     list.append(CMD_READ_PROP);
     list.append(CMD_SET_PROP);
+    list.append(CMD_SET_COMBO_IDX);
+    list.append(CMD_READ_ALL_FILTER);
+
     return list;
 }
 
@@ -83,6 +87,14 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
         else
             return result;
     }
+    else if ( name == CMD_SET_COMBO_IDX )
+    {
+        result["return"] = setComboIdx(args[0].toString(), args[1].toInt());
+    }
+    else if (  name == CMD_READ_ALL_FILTER )
+    {
+        result["return"] = readAllFilteredObjects(args[0].toString(), args[1].toString());
+    }
 
     result["status"] = "PASS";
     return result;
@@ -92,7 +104,7 @@ QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
     QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
-    QList<QString> twoStringParam {CMD_READ_PROP};
+    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX, CMD_READ_ALL_FILTER};
     QList<QString> threeStringParam {CMD_SET_PROP};
 
     if (oneStringParam.indexOf( name )!= -1)
@@ -123,6 +135,8 @@ QString GuiInject::getKeywordDoc(QString name)
         return QString("retrun property of selected object");
     if(name == CMD_SET_PROP)
         return QString("set property of selected object");
+    if(name == CMD_SET_COMBO_IDX)
+        return QString("set combobox by index");
 
     return QString();
 }
@@ -179,6 +193,30 @@ QVariantList GuiInject::readAllObjects()
     return list;
 }
 
+QVariantList GuiInject::readAllFilteredObjects(QString filter, QString value)
+{
+    QVariantList list;
+    for(auto& key : m_objMap.keys())
+    {
+        QObject *obj = m_objMap[key];
+        if (QWidget* pb = (QWidget*)obj)
+        {
+            QVariant var = pb->property(filter.toStdString().c_str());
+            QString ret = var.toString();
+            if (ret.isEmpty())
+            {
+                qDebug() << QString("Property %1 not found").arg(filter);
+                continue;
+            }
+            if ( ret == value )
+            {
+                list.append(key);
+            }
+        }
+    }
+    return list;
+}
+
 void GuiInject::click(QString objName)
 {
     QObject *obj = m_objMap[objName];
@@ -230,6 +268,27 @@ bool GuiInject::setProperty(QString objName, QString property, QString value)
     if (QWidget* pb = (QWidget*)obj)
     {
         ret = pb->setProperty(property.toStdString().c_str(), QVariant(value));
+    }
+    return ret;
+}
+
+bool GuiInject::setComboIdx(QString objName, int index)
+{
+    bool ret = false;
+    QObject *obj = m_objMap[objName];
+    if (!obj)
+    {
+        qDebug() << QString("Object %1 not found !").arg(objName);
+    }
+    if (QComboBox* pb = (QComboBox*)obj)
+    {
+        if (index <= pb->count())
+        {
+            pb->setCurrentIndex(index);
+            ret = true;
+        }
+        else
+            ret = false;
     }
     return ret;
 }

@@ -10,6 +10,8 @@
 #define CMD_CLICK QString("click")
 #define CMD_READ_PROP QString("read property")
 #define CMD_SET_PROP QString("set property")
+#define CMD_SET_COMBO_IDX QString("set combobox index")
+#define CMD_READ_ALL_FILTER QString("read filter objects")
 
 void GUIINJECTSHARED_EXPORT guiInject();
 
@@ -35,9 +37,11 @@ private:
 // server methods
     QString ping(QString str);
     QVariantList readAllObjects();
+    QVariantList readAllFilteredObjects(QString filter, QString value);
     void click(QString objName);
     QString readProperty(QString objName, QString property);
     bool setProperty(QString objName, QString property, QString value);
+    bool setComboIdx(QString objName, int index);
 
 // private methods
     void readObjectTree(QHash<QString, QObject*>& map, QObject *obj);
