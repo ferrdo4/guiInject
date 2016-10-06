@@ -1,5 +1,5 @@
 *** Settings ***
-Library  Remote  http://localhost:8080
+Library  Remote  http://localhost:8888
  
 *** Test Cases ***
 

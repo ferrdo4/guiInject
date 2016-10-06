@@ -12,7 +12,6 @@ LIB_INIT_FUNC void guiInjectInit()
 {
     qDebug() << "lib init";
     StartupHelper* initHelper = new StartupHelper(guiInject);
-    qDebug() << "next";
     QObject::connect(initHelper, SIGNAL(startupComplete()), initHelper, SLOT(deleteLater()));
     initHelper->watchForStartup();
 }
@@ -225,11 +224,12 @@ void GuiInject::click(QString objName)
         qDebug() << QString("Object %1 not found !").arg(objName);
     }
 
-
     // click on the desired object
     if (QWidget* pb = (QWidget*)obj)
     {
-        QPoint pos(0, 0);
+        int w = pb->width();
+        int h = pb->height();
+        QPoint pos(w/2, h/2);
         QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonPress, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
         QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonRelease, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
     }
@@ -288,7 +288,9 @@ bool GuiInject::setComboIdx(QString objName, int index)
             ret = true;
         }
         else
+        {
             ret = false;
+        }
     }
     return ret;
 }
