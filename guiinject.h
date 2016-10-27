@@ -44,7 +44,7 @@ private:
     bool setComboIdx(QString objName, int index);
 
 // private methods
-    void readObjectTree(QHash<QString, QObject*>& map, QObject *obj);
+    void readObjectTree(QHash<QString, QObject*>& map, QObject *obj, QString path);
     void createObjMap();
     bool checkArguments(QString command, int count, QVariantMap& result);
 };

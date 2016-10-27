@@ -145,13 +145,19 @@ bool GuiInject::stopRemoteServer()
     return true;
 }
 
-void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj)
+void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj, QString path)
 {
     QString name = obj->objectName();
-    map[name] = obj;
+    path = QString("%1_%2").arg(path).arg(name);
+
+    if (QWidget* pb = (QWidget*)obj)
+    {
+        map[path] = obj;
+    }
+
     for(auto& child : obj->children())
     {
-        readObjectTree(map, child);
+        readObjectTree(map, child, path);
     }
 }
 
@@ -159,9 +165,11 @@ void GuiInject::createObjMap()
 {
     auto widgets = QApplication::topLevelWidgets();
 
+    QString path = QString();
+
     for(auto& object : widgets)
     {
-        readObjectTree(m_objMap, object);
+        readObjectTree(m_objMap, object, path);
     }
 }
 

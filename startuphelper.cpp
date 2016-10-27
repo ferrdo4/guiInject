@@ -25,7 +25,6 @@ void StartupHelper::doWait()
 {
     while (QCoreApplication::startingUp())
     {
-        qDebug() << "waiting ...";
         Utils::msleep(100);
     }
     QMetaObject::invokeMethod(this, "runInitFunc", Qt::QueuedConnection);
