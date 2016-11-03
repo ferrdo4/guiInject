@@ -11,6 +11,7 @@
 LIB_INIT_FUNC void guiInjectInit()
 {
     qDebug() << "lib init";
+    putenv("LD_PRELOAD=");
     StartupHelper* initHelper = new StartupHelper(guiInject);
     QObject::connect(initHelper, SIGNAL(startupComplete()), initHelper, SLOT(deleteLater()));
     initHelper->watchForStartup();
@@ -302,3 +303,4 @@ bool GuiInject::setComboIdx(QString objName, int index)
     }
     return ret;
 }
+
