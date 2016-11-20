@@ -11,7 +11,7 @@
 LIB_INIT_FUNC void guiInjectInit()
 {
     qDebug() << "lib init";
-    putenv("LD_PRELOAD=");
+    putenv(QString("LD_PRELOAD=").toLatin1().data());
     StartupHelper* initHelper = new StartupHelper(guiInject);
     QObject::connect(initHelper, SIGNAL(startupComplete()), initHelper, SLOT(deleteLater()));
     initHelper->watchForStartup();
@@ -19,21 +19,25 @@ LIB_INIT_FUNC void guiInjectInit()
 
 void guiInject()
 {
-    qDebug() << "lib inject";
-    new GuiInject(QCoreApplication::instance());
+    const char* TOK = "GI_TOKEN";
+    QString token = QString(getenv(TOK));
+    qDebug() << "lib inject with token " << token;
+    putenv(QString("GI_TOKEN=").toLatin1().data());
+    new GuiInject(QCoreApplication::instance(), token);
 }
 
-GuiInject::GuiInject(QObject* parent)
+GuiInject::GuiInject(QObject* parent, QString token)
     : QObject(parent)
+    ,_token(token)
 {
-    m_server = new MaiaXmlRpcServer(8888, this);
+    _server = new MaiaXmlRpcServer(8888, this);
 
     // dynamic RF api
-    m_server->addMethod("get_keyword_names", this, "getKeywordNames");
-    m_server->addMethod("run_keyword", this, "runKeyword");
-    m_server->addMethod("get_keyword_arguments", this, "getKeywordArguments");
-    m_server->addMethod("get_keyword_documentation", this, "getKeywordDoc");
-    m_server->addMethod("stop_remote_server", this, "stopRemoteServer");
+    _server->addMethod("get_keyword_names", this, "getKeywordNames");
+    _server->addMethod("run_keyword", this, "runKeyword");
+    _server->addMethod("get_keyword_arguments", this, "getKeywordArguments");
+    _server->addMethod("get_keyword_documentation", this, "getKeywordDoc");
+    _server->addMethod("stop_remote_server", this, "stopRemoteServer");
 
     createObjMap();
 }
@@ -47,7 +51,7 @@ QVariantList GuiInject::getKeywordNames()
     list.append(CMD_READ_PROP);
     list.append(CMD_SET_PROP);
     list.append(CMD_SET_COMBO_IDX);
-    list.append(CMD_READ_ALL_FILTER);
+    list.append(CMD_FIND_PATH);
 
     return list;
 }
@@ -91,7 +95,7 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
     {
         result["return"] = setComboIdx(args[0].toString(), args[1].toInt());
     }
-    else if (  name == CMD_READ_ALL_FILTER )
+    else if (  name == CMD_FIND_PATH )
     {
         result["return"] = readAllFilteredObjects(args[0].toString(), args[1].toString());
     }
@@ -104,7 +108,7 @@ QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
     QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
-    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX, CMD_READ_ALL_FILTER};
+    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX, CMD_FIND_PATH};
     QList<QString> threeStringParam {CMD_SET_PROP};
 
     if (oneStringParam.indexOf( name )!= -1)
@@ -151,14 +155,15 @@ void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj, QStr
     QString name = obj->objectName();
     path = QString("%1_%2").arg(path).arg(name);
 
-    if (QWidget* pb = (QWidget*)obj)
-    {
-        map[path] = obj;
-    }
-
     for(auto& child : obj->children())
     {
         readObjectTree(map, child, path);
+    }
+
+    if (QWidget* pb = (QWidget*)obj)
+    {
+        if (path.contains(_token))
+            map[path] = obj;
     }
 }
 
@@ -170,7 +175,7 @@ void GuiInject::createObjMap()
 
     for(auto& object : widgets)
     {
-        readObjectTree(m_objMap, object, path);
+        readObjectTree(_objMap, object, path);
     }
 }
 
@@ -194,7 +199,7 @@ QString GuiInject::ping(QString str)
 QVariantList GuiInject::readAllObjects()
 {
     QVariantList list;
-    for(auto& key : m_objMap.keys())
+    for(auto& key : _objMap.keys())
     {
         list.append(key);
     }
@@ -204,9 +209,9 @@ QVariantList GuiInject::readAllObjects()
 QVariantList GuiInject::readAllFilteredObjects(QString filter, QString value)
 {
     QVariantList list;
-    for(auto& key : m_objMap.keys())
+    for(auto& key : _objMap.keys())
     {
-        QObject *obj = m_objMap[key];
+        QObject *obj = _objMap[key];
         if (QWidget* pb = (QWidget*)obj)
         {
             QVariant var = pb->property(filter.toStdString().c_str());
@@ -227,7 +232,7 @@ QVariantList GuiInject::readAllFilteredObjects(QString filter, QString value)
 
 void GuiInject::click(QString objName)
 {
-    QObject *obj = m_objMap[objName];
+    QObject *obj = _objMap[objName];
     if (!obj)
     {
         qDebug() << QString("Object %1 not found !").arg(objName);
@@ -247,7 +252,7 @@ void GuiInject::click(QString objName)
 QString GuiInject::readProperty(QString objName, QString property)
 {
     QString ret;
-    QObject *obj = m_objMap[objName];
+    QObject *obj = _objMap[objName];
     if (!obj)
     {
         qDebug() << QString("Object %1 not found !").arg(objName);
@@ -268,7 +273,7 @@ QString GuiInject::readProperty(QString objName, QString property)
 bool GuiInject::setProperty(QString objName, QString property, QString value)
 {
     bool ret = false;
-    QObject *obj = m_objMap[objName];
+    QObject *obj = _objMap[objName];
     if (!obj)
     {
         qDebug() << QString("Object %1 not found !").arg(objName);
@@ -284,7 +289,7 @@ bool GuiInject::setProperty(QString objName, QString property, QString value)
 bool GuiInject::setComboIdx(QString objName, int index)
 {
     bool ret = false;
-    QObject *obj = m_objMap[objName];
+    QObject *obj = _objMap[objName];
     if (!obj)
     {
         qDebug() << QString("Object %1 not found !").arg(objName);

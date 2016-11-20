@@ -11,7 +11,7 @@
 #define CMD_READ_PROP QString("read property")
 #define CMD_SET_PROP QString("set property")
 #define CMD_SET_COMBO_IDX QString("set combobox index")
-#define CMD_READ_ALL_FILTER QString("read filter objects")
+#define CMD_FIND_PATH QString("find path")
 
 void GUIINJECTSHARED_EXPORT guiInject();
 
@@ -20,7 +20,7 @@ class GUIINJECTSHARED_EXPORT GuiInject : public QObject
     Q_OBJECT
 
 public:
-    GuiInject(QObject *parent);
+    GuiInject(QObject *parent, QString token);
 
 public slots:
 // remote library methods
@@ -31,8 +31,9 @@ public slots:
     bool stopRemoteServer();
 
 private:
-    MaiaXmlRpcServer* m_server;
-    QHash<QString, QObject*> m_objMap;
+    QString _token;
+    MaiaXmlRpcServer* _server;
+    QHash<QString, QObject*> _objMap;
 
 // server methods
     QString ping(QString str);
