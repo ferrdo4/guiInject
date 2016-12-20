@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include <QComboBox>
+
 #include "startuphelper.h"
 
 #define LIB_INIT_FUNC __attribute__((constructor))
@@ -26,9 +27,13 @@ void guiInject()
     new GuiInject(QCoreApplication::instance(), token);
 }
 
-GuiInject::GuiInject(QObject* parent, QString token)
+GuiInject::GuiInject(QObject* parent, const QString& token)
     : QObject(parent)
     ,_token(token)
+    ,_server(nullptr)
+    ,_objMap(QHash<QString, QObject*>())
+    ,_objMapIdx(QHash<QObject*, QString>())
+    ,_pick(new DirectPick(parent))
 {
     _server = new MaiaXmlRpcServer(8888, this);
 
@@ -39,7 +44,10 @@ GuiInject::GuiInject(QObject* parent, QString token)
     _server->addMethod("get_keyword_documentation", this, "getKeywordDoc");
     _server->addMethod("stop_remote_server", this, "stopRemoteServer");
 
+    _pick->start();
+
     createObjMap();
+    _pick->setMap(&_objMapIdx);
 }
 
 QVariantList GuiInject::getKeywordNames()
@@ -52,6 +60,9 @@ QVariantList GuiInject::getKeywordNames()
     list.append(CMD_SET_PROP);
     list.append(CMD_SET_COMBO_IDX);
     list.append(CMD_FIND_PATH);
+    list.append(CMD_PICK_START);
+    list.append(CMD_PICK_STOP);
+    list.append(CMD_REFRESH);
 
     return list;
 }
@@ -95,9 +106,24 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
     {
         result["return"] = setComboIdx(args[0].toString(), args[1].toInt());
     }
-    else if (  name == CMD_FIND_PATH )
+    else if ( name == CMD_FIND_PATH )
     {
-        result["return"] = readAllFilteredObjects(args[0].toString(), args[1].toString());
+        result["return"] = findPaths(args[0].toList());
+    }
+    else if ( name == CMD_PICK_START )
+    {
+        _pick->start();
+        result["return"] = "true";
+    }
+    else if ( name == CMD_PICK_STOP )
+    {
+        _pick->stop();
+        result["return"] = "true";
+    }
+    else if ( name == CMD_REFRESH )
+    {
+        createObjMap();
+        result["return"] = "true";
     }
 
     result["status"] = "PASS";
@@ -108,11 +134,18 @@ QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
     QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
-    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX, CMD_FIND_PATH};
+    QList<QString> oneListStringParam {CMD_FIND_PATH};
+    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX};
     QList<QString> threeStringParam {CMD_SET_PROP};
 
     if (oneStringParam.indexOf( name )!= -1)
+    {
         list.append("QString");
+    }
+    else if (oneListStringParam.indexOf(name) != -1)
+    {
+        list.append("QVariantList<QString>");
+    }
     else if (twoStringParam.indexOf(name) != -1)
     {
         list.append("QString");
@@ -141,6 +174,8 @@ QString GuiInject::getKeywordDoc(QString name)
         return QString("set property of selected object");
     if(name == CMD_SET_COMBO_IDX)
         return QString("set combobox by index");
+    if(name == CMD_FIND_PATH)
+        return QString("find path based on string list");
 
     return QString();
 }
@@ -150,7 +185,7 @@ bool GuiInject::stopRemoteServer()
     return true;
 }
 
-void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj, QString path)
+void GuiInject::readObjectTree(QHash<QString, QObject*>& map, QObject* obj, QString path)
 {
     QString name = obj->objectName();
     path = QString("%1_%2").arg(path).arg(name);
@@ -162,8 +197,12 @@ void GuiInject::readObjectTree(QHash<QString, QObject*> &map, QObject* obj, QStr
 
     if (QWidget* pb = (QWidget*)obj)
     {
+        Q_UNUSED(pb);
         if (path.contains(_token))
+        {
             map[path] = obj;
+            _objMapIdx[obj] = path;
+        }
     }
 }
 
@@ -206,27 +245,25 @@ QVariantList GuiInject::readAllObjects()
     return list;
 }
 
-QVariantList GuiInject::readAllFilteredObjects(QString filter, QString value)
+QVariantList GuiInject::findPaths(QVariantList marks)
 {
     QVariantList list;
-    for(auto& key : _objMap.keys())
+
+    for (auto& key : _objMap.keys())
     {
-        QObject *obj = _objMap[key];
-        if (QWidget* pb = (QWidget*)obj)
+        //qDebug() << key;
+        bool escape = false;
+        for (auto& mark : marks)
         {
-            QVariant var = pb->property(filter.toStdString().c_str());
-            QString ret = var.toString();
-            if (ret.isEmpty())
-            {
-                qDebug() << QString("Property %1 not found").arg(filter);
-                continue;
-            }
-            if ( ret == value )
-            {
-                list.append(key);
-            }
+            qDebug() << mark;
+            if (!key.contains(mark.toString()))
+                escape = true;
         }
+        if (escape)
+            continue;
+        list.append(key);
     }
+
     return list;
 }
 

@@ -9,11 +9,13 @@ LIBS += libmaia/libmaia.a
 DEFINES += GUIINJECT_LIBRARY
 
 SOURCES += guiinject.cpp \
-    startuphelper.cpp
+    startuphelper.cpp \
+    directpick.cpp
 
 HEADERS += guiinject.h\
     guiinject_global.h \
-    startuphelper.h
+    startuphelper.h \
+    directpick.h
 
 greaterThan(QT_MAJOR_VERSION, 4){
     CONFIG += c++11
