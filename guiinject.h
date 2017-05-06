@@ -10,6 +10,7 @@
 #define CMD_PING QString("ping")
 #define CMD_READ_ALL QString("read all objects")
 #define CMD_CLICK QString("click")
+#define CMD_KEYPRESS QString("keypress")
 #define CMD_READ_PROP QString("read property")
 #define CMD_SET_PROP QString("set property")
 #define CMD_SET_COMBO_IDX QString("set combobox index")
@@ -47,6 +48,7 @@ private:
     QVariantList readAllObjects();
     QVariantList findPaths(QVariantList marks);
     void click(QString objName);
+    void keyPress(QString key);
     QString readProperty(QString objName, QString property);
     bool setProperty(QString objName, QString property, QString value);
     bool setComboIdx(QString objName, int index);
