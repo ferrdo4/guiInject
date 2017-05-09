@@ -94,7 +94,7 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
     }
     else if (name == CMD_KEYPRESS)
     {
-        keyPress(args[0].toString());
+        keyPress(args[0].toString(), args[1].toString());
         result["return"] = "";
     }
     else if ( name == CMD_READ_PROP )
@@ -139,9 +139,9 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
 QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
-    QList<QString> oneStringParam {CMD_PING, CMD_CLICK, CMD_KEYPRESS};
+    QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
     QList<QString> oneListStringParam {CMD_FIND_PATH};
-    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX};
+    QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX, CMD_KEYPRESS};
     QList<QString> threeStringParam {CMD_SET_PROP};
 
     if (oneStringParam.indexOf( name )!= -1)
@@ -294,20 +294,24 @@ void GuiInject::click(QString objName)
     }
 }
 
-void GuiInject::keyPress(QString key)
+void GuiInject::keyPress(QString objName, QString key)
 {
-    QObject *obj = QApplication::focusObject();
+    QObject *obj = _objMap[objName];
     if (!obj)
     {
         qDebug() << QString("No focused object");
         return;
     }
+    if (QWidget* pb = (QWidget*)obj)
+    {
+        pb->setFocus();
 
-    QKeyEvent keyPress( QKeyEvent::KeyPress, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
-    QApplication::sendEvent( obj, &keyPress );
+        QKeyEvent keyPress( QKeyEvent::KeyPress, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
+        QApplication::sendEvent( obj, &keyPress );
 
-    QKeyEvent keyRelease( QKeyEvent::KeyRelease, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
-    QApplication::sendEvent( obj, &keyRelease );
+        QKeyEvent keyRelease( QKeyEvent::KeyRelease, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
+        QApplication::sendEvent( obj, &keyRelease );
+    }
 }
 
 
