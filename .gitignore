@@ -2,5 +2,6 @@ Makefile
 *.o
 *.so*
 *.pro.user
+*.a
 moc_*
 
