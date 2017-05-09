@@ -56,6 +56,7 @@ QVariantList GuiInject::getKeywordNames()
     list.append(CMD_PING);
     list.append(CMD_READ_ALL);
     list.append(CMD_CLICK);
+    list.append(CMD_KEYPRESS);
     list.append(CMD_READ_PROP);
     list.append(CMD_SET_PROP);
     list.append(CMD_SET_COMBO_IDX);
@@ -89,6 +90,11 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
     else if (name == CMD_CLICK)
     {
         click(args[0].toString());
+        result["return"] = "";
+    }
+    else if (name == CMD_KEYPRESS)
+    {
+        keyPress(args[0].toString());
         result["return"] = "";
     }
     else if ( name == CMD_READ_PROP )
@@ -133,7 +139,7 @@ QVariantMap GuiInject::runKeyword(QString name, QVariantList args)
 QVariantList GuiInject::getKeywordArguments(QString name)
 {
     QVariantList list;
-    QList<QString> oneStringParam {CMD_PING, CMD_CLICK};
+    QList<QString> oneStringParam {CMD_PING, CMD_CLICK, CMD_KEYPRESS};
     QList<QString> oneListStringParam {CMD_FIND_PATH};
     QList<QString> twoStringParam {CMD_READ_PROP, CMD_SET_COMBO_IDX};
     QList<QString> threeStringParam {CMD_SET_PROP};
@@ -166,6 +172,8 @@ QString GuiInject::getKeywordDoc(QString name)
         return QString("retruns pong + string");
     if(name == CMD_CLICK)
         return QString("click on object with name");
+    if(name == CMD_KEYPRESS)
+        return QString("sends text string to focused object");
     if(name == CMD_READ_ALL)
         return QString("retrun list of all objects");
     if(name == CMD_READ_PROP)
@@ -285,6 +293,23 @@ void GuiInject::click(QString objName)
         QApplication::postEvent(pb, new QMouseEvent(QEvent::MouseButtonRelease, pos, Qt::MouseButton::LeftButton, Qt::MouseButton::LeftButton, Qt::KeyboardModifier::NoModifier) );
     }
 }
+
+void GuiInject::keyPress(QString key)
+{
+    QObject *obj = QApplication::focusObject();
+    if (!obj)
+    {
+        qDebug() << QString("No focused object");
+        return;
+    }
+
+    QKeyEvent keyPress( QKeyEvent::KeyPress, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
+    QApplication::sendEvent( obj, &keyPress );
+
+    QKeyEvent keyRelease( QKeyEvent::KeyRelease, key.at(0).toLatin1(), Qt::NoModifier, key, false, 0 );
+    QApplication::sendEvent( obj, &keyRelease );
+}
+
 
 QString GuiInject::readProperty(QString objName, QString property)
 {
