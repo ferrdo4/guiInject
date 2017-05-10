@@ -219,6 +219,9 @@ void GuiInject::createObjMap()
     auto widgets = QApplication::topLevelWidgets();
 
     QString path = QString();
+    
+    _objMap.clear();
+    _objMapIdx.clear();
 
     for(auto& object : widgets)
     {
