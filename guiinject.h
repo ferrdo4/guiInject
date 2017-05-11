@@ -48,7 +48,7 @@ private:
     QVariantList readAllObjects();
     QVariantList findPaths(QVariantList marks);
     void click(QString objName);
-    void keyPress(QString objName, QString key);
+    void keyPress(QString key);
     QString readProperty(QString objName, QString property);
     bool setProperty(QString objName, QString property, QString value);
     bool setComboIdx(QString objName, int index);

@@ -26,4 +26,5 @@ change text
     set property    pushButton_2   text   Hello!
 
 Send string
-    keypress        _MainWindow_centralWidget_tabWidget_qt_tabwidget_stackedwidget_tab_lineEdit  123456
+    click   _MainWindow_centralWidget_tabWidget_qt_tabwidget_stackedwidget_tab_lineEdit
+    keypress        123456

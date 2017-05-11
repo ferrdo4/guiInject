@@ -15,8 +15,10 @@ bool DirectPick::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::MouseButtonPress)
     {
-        if (QWidget* widget = static_cast<QWidget*>(obj))
+        if (nullptr != dynamic_cast<QWidget*>(obj))
+        {
             qDebug() << (*_map)[obj];
+        }
     }
     return false;
 }

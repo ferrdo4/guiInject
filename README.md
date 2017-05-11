@@ -7,6 +7,7 @@
 |ping|test server response|string to return|
 |read all objects|return list of all QObjects| --- |
 |click|click into a widget|object name|
+|keypress|send text to focused object| --- |
 |read property|read property of a widget|object, property name|
 |set property|set property to a widget|object, property name, value|
 |set combobox index|set index of selected item in combobox|object name, index|
